@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from setuptools import setup
 
 setup(
@@ -17,9 +18,10 @@ setup(
     include_package_data=True,
     platforms='any',
     install_requires=['pytest>=2.3'],
+    url='https://github.com/loles/pytest-subunit',
     classifiers=[
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache-2 License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: POSIX',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: MacOS :: MacOS X',
