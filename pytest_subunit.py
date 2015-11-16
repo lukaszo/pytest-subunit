@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 # inspired by https://github.com/Frozenball/pytest-sugar
+import datetime
 import os
 
 from subunit import StreamResultToBytes
 from subunit.test_results import AutoTimingTestResultDecorator
 
+import py
 import pytest
 from _pytest.terminal import TerminalReporter
 from _pytest._pluggy import HookspecMarker
@@ -47,33 +49,35 @@ def pytest_configure(config):
         config.pluginmanager.unregister(standard_reporter)
         config.pluginmanager.register(subunit_reporter, 'terminalreporter')
 
+_ZERO = datetime.timedelta(0)
+
+class UTC(datetime.tzinfo):
+    """UTC"""
+
+    def utcoffset(self, dt):
+        return _ZERO
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return _ZERO
+
+utc = UTC()
 
 class SubunitTerminalReporter(TerminalReporter):
     def __init__(self, reporter):
         TerminalReporter.__init__(self, reporter.config)
         self.writer = self._tw
-        self.paths_left = []
         self.tests_count = 0
-        self.currentfspath2 = ''
-        self.time_taken = {}
         self.reports = []
-        self.unreported_errors = []
-        self.progress_blocks = []
         self.result = StreamResultToBytes(self.writer._file)
-        #self.result = AutoTimingTestResultDecorator(self.result)
 
     def _get_test_id(self, location):
         return location[0] + '::' + location[2]
 
     def pytest_collectreport(self, report):
-        TerminalReporter.pytest_collectreport(self, report)
-        if report.location[0]:
-            self.paths_left.append(
-                os.path.join(os.getcwd(), report.location[0])
-            )
-        if report.failed:
-            self.rewrite("")
-            self.print_failure(report)
+        pass
 
     def pytest_collection_finish(self, session):
         if self.config.option.collectonly:
@@ -90,21 +94,21 @@ class SubunitTerminalReporter(TerminalReporter):
     def pytest_sessionstart(self, session):
         pass
 
-    def write_fspath_result(self, fspath, res):
-        return
-
     def pytest_runtest_logstart(self, nodeid, location):
-        # Prevent locationline from being printed since we already
-        # show the module_name & in verbose mode the test name.
         pass
 
+    def pytest_sessionfinish(self, session, exitstatus):
+        # always exit with exitcode 0
+        session.exitstatus = 0
+
     def pytest_runtest_logreport(self, report):
+        now = datetime.datetime.now(utc)
         self.reports.append(report)
         test_id = self._get_test_id(report.location)
         if report.when in ['setup', 'session']:
             if report.outcome == 'passed':
                 self.result.status(test_id=test_id, test_status='exists')
-                self.result.status(test_id=test_id, test_status='inprogress')
+                self.result.status(test_id=test_id, test_status='inprogress', timestamp=now)
             elif report.outcome == 'failed':
                 import ipdb;ipdb.set_trace()
                 pass
@@ -112,11 +116,15 @@ class SubunitTerminalReporter(TerminalReporter):
                 import ipdb;ipdb.set_trace()
         elif report.when in ['call']:
             if report.outcome == 'passed':
-                self.result.status(test_id=test_id, test_status='success')
+                self.result.status(test_id=test_id, test_status='success', timestamp=now)
             elif report.outcome == 'failed':
-                self.result.status(test_id=test_id, test_status='fail')
+                writer=py.io.TerminalWriter(stringio=True)
+                report.toterminal(writer)
+                writer.stringio.seek(0)
+                out = writer.stringio.read()
+                self.result.status(file_name=report.fspath, file_bytes=str(out), mime_type="text/plain; charset=utf8", test_id=test_id, test_status='fail', timestamp=now)
             else:
-                self.result.status(test_id=test_id, test_status='skip')
+                self.result.status(test_id=test_id, test_status='skip', timestamp=now)
         elif report.when in ['teardown']:
             if report.outcome == 'passed':
                 pass
