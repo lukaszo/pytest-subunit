@@ -17,7 +17,7 @@ setup(
     zip_safe=False,
     include_package_data=True,
     platforms='any',
-    install_requires=['pytest>=2.3'],
+    install_requires=['pytest>=2.3','python-subunit>=1.2'],
     url='https://github.com/loles/pytest-subunit',
     classifiers=[
         'Intended Audience :: Developers',
