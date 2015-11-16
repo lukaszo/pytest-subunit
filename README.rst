@@ -11,7 +11,7 @@ Plugin was tested on Python 2.7 and requires pytest 2.6.4 or newer.
 Installation
 ------------
 
-To install pytest-subunit
+To install pytest-subunit::
 
     $ pip install pytest-subunit
 
