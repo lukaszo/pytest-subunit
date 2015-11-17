@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 # inspired by https://github.com/Frozenball/pytest-sugar
 import datetime
-import os
 
 from subunit import StreamResultToBytes
-from subunit.test_results import AutoTimingTestResultDecorator
 
 import py
 import pytest
