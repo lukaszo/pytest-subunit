@@ -47,6 +47,7 @@ def pytest_configure(config):
         config.pluginmanager.unregister(standard_reporter)
         config.pluginmanager.register(subunit_reporter, 'terminalreporter')
 
+
 _ZERO = datetime.timedelta(0)
 
 class UTC(datetime.tzinfo):
@@ -63,6 +64,7 @@ class UTC(datetime.tzinfo):
 
 utc = UTC()
 
+
 class SubunitTerminalReporter(TerminalReporter):
     def __init__(self, reporter):
         TerminalReporter.__init__(self, reporter.config)
@@ -70,6 +72,30 @@ class SubunitTerminalReporter(TerminalReporter):
         self.tests_count = 0
         self.reports = []
         self.result = StreamResultToBytes(self.writer._file)
+
+    def _status(self, report, status):
+        # task id
+        test_id = self._get_test_id(report.location)
+
+        # get time
+        now = datetime.datetime.now(utc)
+
+        # capture output
+        writer=py.io.TerminalWriter(stringio=True)
+        try:
+            report.toterminal(writer)
+        except:
+            pass
+        writer.stringio.seek(0)
+        out = writer.stringio.read()
+        out = str(out)
+
+        # send status
+        self.result.status(test_id=test_id,
+                           test_status=status,
+                           timestamp=now,
+                           file_bytes=out,
+                           mime_type="text/plain; charset=utf8")
 
     def _get_test_id(self, location):
         return location[0] + '::' + location[2]
@@ -100,37 +126,23 @@ class SubunitTerminalReporter(TerminalReporter):
         session.exitstatus = 0
 
     def pytest_runtest_logreport(self, report):
-        now = datetime.datetime.now(utc)
         self.reports.append(report)
-        test_id = self._get_test_id(report.location)
         if report.when in ['setup', 'session']:
+            self._status(report, 'exists')
             if report.outcome == 'passed':
-                self.result.status(test_id=test_id, test_status='exists')
-                self.result.status(test_id=test_id, test_status='inprogress', timestamp=now)
-            elif report.outcome == 'failed':
-                import ipdb;ipdb.set_trace()
-                pass
-            else:
-                import ipdb;ipdb.set_trace()
+                self._status(report, 'inprogress')
+            if report.outcome == 'failed':
+                self._status(report, 'fail')
         elif report.when in ['call']:
-            if report.outcome == 'passed':
-                self.result.status(test_id=test_id, test_status='success', timestamp=now)
-            elif report.outcome == 'failed':
-                writer=py.io.TerminalWriter(stringio=True)
-                report.toterminal(writer)
-                writer.stringio.seek(0)
-                out = writer.stringio.read()
-                self.result.status(file_name=report.fspath, file_bytes=str(out), mime_type="text/plain; charset=utf8", test_id=test_id, test_status='fail', timestamp=now)
-            else:
-                self.result.status(test_id=test_id, test_status='skip', timestamp=now)
+            if report.outcome == 'failed':
+                self._status(report, 'fail')
+            elif report.outcome == 'skipped':
+                self._status(report, 'skip')
         elif report.when in ['teardown']:
             if report.outcome == 'passed':
-                pass
+                self._status(report, 'success')
             elif report.outcome == 'failed':
-                import ipdb;ipdb.set_trace()
-                pass
-            else:
-                import ipdb;ipdb.set_trace()
+                self._status(report, 'fail')
         else:
             raise Exception(str(report))
 
@@ -151,24 +163,3 @@ class SubunitTerminalReporter(TerminalReporter):
         # Prevent error summary from being shown since we already
         # show the error instantly after error has occured.
         pass
-
-    def print_failure(self, report):
-        # https://github.com/Frozenball/pytest-sugar/issues/34
-        if hasattr(report, 'wasxfail'):
-            return
-
-        if self.config.option.tbstyle != "no":
-            if self.config.option.tbstyle == "line":
-                line = self._getcrashline(report)
-                self.write_line(line)
-            else:
-                msg = self._getfailureheadline(report)
-                if not hasattr(report, 'when'):
-                    msg = "ERROR collecting " + msg
-                elif report.when == "setup":
-                    msg = "ERROR at setup of " + msg
-                elif report.when == "teardown":
-                    msg = "ERROR at teardown of " + msg
-                self.write_line('')
-                self.write_sep("―", msg)
-                self._outrep_summary(report)
