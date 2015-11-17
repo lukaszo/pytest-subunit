@@ -1,2 +1,0 @@
-- capture stdout and stderr and include it in status. It should be possible with report.toterminal method
-- show progress like in nova tests
