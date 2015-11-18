@@ -96,6 +96,7 @@ class SubunitTerminalReporter(TerminalReporter):
         self.result.status(test_id=test_id,
                            test_status=status,
                            timestamp=now,
+                           file_name=report.fspath,
                            file_bytes=out,
                            mime_type="text/plain; charset=utf8")
 
