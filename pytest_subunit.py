@@ -71,6 +71,8 @@ class SubunitTerminalReporter(TerminalReporter):
         self.writer = self._tw
         self.tests_count = 0
         self.reports = []
+        self.skipped = []
+        self.failed = []
         self.result = StreamResultToBytes(self.writer._file)
 
     def _status(self, report, status):
@@ -127,6 +129,7 @@ class SubunitTerminalReporter(TerminalReporter):
 
     def pytest_runtest_logreport(self, report):
         self.reports.append(report)
+        test_id = self._get_test_id(report.location)
         if report.when in ['setup', 'session']:
             self._status(report, 'exists')
             if report.outcome == 'passed':
@@ -136,13 +139,16 @@ class SubunitTerminalReporter(TerminalReporter):
         elif report.when in ['call']:
             if report.outcome == 'failed':
                 self._status(report, 'fail')
+                self.failed.append(test_id)
             elif report.outcome == 'skipped':
                 self._status(report, 'skip')
+                self.skipped.append(test_id)
         elif report.when in ['teardown']:
-            if report.outcome == 'passed':
-                self._status(report, 'success')
-            elif report.outcome == 'failed':
-                self._status(report, 'fail')
+            if test_id not in self.skipped and test_id not in self.failed:
+                if report.outcome == 'passed':
+                    self._status(report, 'success')
+                elif report.outcome == 'failed':
+                    self._status(report, 'fail')
         else:
             raise Exception(str(report))
 
