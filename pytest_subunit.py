@@ -7,9 +7,6 @@ from subunit import StreamResultToBytes
 import py
 import pytest
 from _pytest.terminal import TerminalReporter
-from _pytest._pluggy import HookspecMarker
-
-hookspec = HookspecMarker("pytest")
 
 
 def pytest_collection_modifyitems(session, config, items):
