@@ -13,6 +13,12 @@ def pytest_collection_modifyitems(session, config, items):
     if config.option.subunit:
         terminal_reporter = config.pluginmanager.getplugin('terminalreporter')
         terminal_reporter.tests_count += len(items)
+    if config.option.subunit_load_list:
+        with open(config.option.subunit_load_list) as f:
+            to_run = f.readlines()
+        to_run = [line.strip() for line in to_run]
+        filtered = [item for item in items if item.nodeid in to_run]
+        items[:] = filtered
 
 
 def pytest_deselected(items):
@@ -29,6 +35,12 @@ def pytest_addoption(parser):
     group = parser.getgroup("terminal reporting", "reporting", after="general")
     group._addoption(
         '--subunit', action="store_true", dest="subunit", default=False,
+        help=(
+            "enable pytest-subunit"
+        )
+    )
+    group._addoption(
+        '--subunit-load-list', dest="subunit_load_list", default=False,
         help=(
             "enable pytest-subunit"
         )
@@ -74,7 +86,7 @@ class SubunitTerminalReporter(TerminalReporter):
 
     def _status(self, report, status):
         # task id
-        test_id = self._get_test_id(report.location)
+        test_id = report.nodeid
 
         # get time
         now = datetime.datetime.now(utc)
@@ -96,9 +108,6 @@ class SubunitTerminalReporter(TerminalReporter):
                            file_name=report.fspath,
                            file_bytes=out,
                            mime_type="text/plain; charset=utf8")
-
-    def _get_test_id(self, location):
-        return location[0] + '::' + location[2]
 
     def pytest_collectreport(self, report):
         pass
@@ -127,7 +136,7 @@ class SubunitTerminalReporter(TerminalReporter):
 
     def pytest_runtest_logreport(self, report):
         self.reports.append(report)
-        test_id = self._get_test_id(report.location)
+        test_id = report.nodeid
         if report.when in ['setup', 'session']:
             self._status(report, 'exists')
             if report.outcome == 'passed':
@@ -152,7 +161,7 @@ class SubunitTerminalReporter(TerminalReporter):
 
     def _printcollecteditems(self, items):
         for item in items:
-            test_id = self._get_test_id(item.location)
+            test_id = item.nodeid
             self.result.status(test_id=test_id, test_status='exists')
 
     def summary_stats(self):
