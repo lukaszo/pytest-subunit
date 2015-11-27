@@ -42,7 +42,7 @@ def pytest_addoption(parser):
     group._addoption(
         '--subunit-load-list', dest="subunit_load_list", default=False,
         help=(
-            "enable pytest-subunit"
+            "Path to file with list of tests to run"
         )
     )
 
