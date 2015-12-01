@@ -8,7 +8,7 @@ setup(
         'result in subunit format.'
     ),
     long_description="",
-    version='0.0.7',
+    version='0.0.8',
     license='Apache 2',
     author='Łukasz Oleś',
     author_email='loles@mirantis.com',
