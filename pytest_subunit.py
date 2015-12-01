@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # inspired by https://github.com/Frozenball/pytest-sugar
 import datetime
+import os
+import re
 
 from subunit import StreamResultToBytes
 
@@ -45,6 +47,31 @@ def pytest_addoption(parser):
             "Path to file with list of tests to run"
         )
     )
+
+
+@pytest.mark.tryfirst
+def pytest_load_initial_conftests(early_config, parser, args):
+    # XXX: very hacky. Adding support for python setup.py testr --coverage
+    # see https://github.com/testing-cabal/testrepository/blob/master/testrepository/setuptools_command.py#L106
+    # For now it cannot run in parallel mode, in tox.ini there should be added
+    # --testr-args='--concurrency=1'
+    parsed_args = parser.parse_known_args(args)
+    if parsed_args.subunit:
+        python_env = os.environ.get('PYTHON', None)
+        if python_env and python_env.startswith('coverage'):
+            cov_plugin = early_config.pluginmanager.get_plugin('pytest_cov')
+            # XXX: coverage plugin not installed. Silently ignoring
+            if not cov_plugin:
+                return
+            # matching: coverage run --source (package) --parallel-mode
+            coverage_pat = re.compile('coverage run --source (\w+) --parallel-mode')
+            match = coverage_pat.match(python_env)
+            cov_args = args + ['--cov']
+            if match:
+                package = match.groups()[0]
+                cov_args += [package]
+            cov_plugin.pytest_load_initial_conftests(early_config,
+                                                     parser, cov_args)
 
 
 @pytest.mark.trylast
