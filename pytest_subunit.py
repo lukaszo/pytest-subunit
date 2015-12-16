@@ -171,7 +171,12 @@ class SubunitTerminalReporter(TerminalReporter):
             if report.outcome == 'failed':
                 self._status(report, 'fail')
         elif report.when in ['call']:
-            if report.outcome == 'failed':
+            if hasattr(report, "wasxfail"):
+                if report.skipped:
+                    self._status(report, 'xfail')
+                elif report.failed:
+                    self._status(report, 'uxsuccess')
+            elif report.outcome == 'failed':
                 self._status(report, 'fail')
                 self.failed.append(test_id)
             elif report.outcome == 'skipped':
