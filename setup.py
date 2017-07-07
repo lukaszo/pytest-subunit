@@ -8,7 +8,7 @@ setup(
         'result in subunit format.'
     ),
     long_description="",
-    version='0.0.9',
+    version='0.0.10',
     license='Apache 2',
     author='Łukasz Oleś',
     author_email='loles@mirantis.com',
@@ -30,5 +30,7 @@ setup(
         'Topic :: Utilities',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
     ]
 )
