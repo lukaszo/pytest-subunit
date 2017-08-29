@@ -126,7 +126,7 @@ class SubunitTerminalReporter(TerminalReporter):
             pass
         writer.stringio.seek(0)
         out = writer.stringio.read()
-        out = str(out)
+        out = out.encode("utf-8")
 
         # send status
         self.result.status(test_id=test_id,
