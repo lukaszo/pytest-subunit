@@ -170,6 +170,8 @@ class SubunitTerminalReporter(TerminalReporter):
                 self._status(report, 'inprogress')
             if report.outcome == 'failed':
                 self._status(report, 'fail')
+            elif report.outcome == 'skipped':
+                self._status(report, 'skip')
         elif report.when in ['call']:
             if hasattr(report, "wasxfail"):
                 if report.skipped:
